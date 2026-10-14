@@ -188,7 +188,7 @@ final class UpdateChecker: ObservableObject {
 
     /// 用户自己打开主窗口时，弹出尚未处理（未忽略、未点「稍后」）的新版本提示。
     func mainWindowDidAppear() {
-        guard presentedRelease == nil, let pendingRelease,
+        guard let pendingRelease,
               UpdatePolicy.shouldPromptAutomatically(latestTag: pendingRelease.tagName, skippedVersion: skippedVersion,
                                                      snoozedVersions: snoozedVersions) else { return }
         presentedRelease = pendingRelease
@@ -202,6 +202,8 @@ final class UpdateChecker: ObservableObject {
 
     func download(_ release: GitHubRelease) {
         NSWorkspace.shared.open(release.htmlURL)
+        // 已去下载：本次启动内不再自动弹出，菜单项保留。
+        snoozedVersions.insert(release.tagName)
         presentedRelease = nil
     }
 

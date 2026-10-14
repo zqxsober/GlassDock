@@ -88,9 +88,11 @@ struct DashboardView: View {
         .alert("GlassDock", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("知道了", role: .cancel) { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }
-        .sheet(item: Binding(get: { store.updateChecker.presentedRelease },
-                             set: { store.updateChecker.presentedRelease = $0 })) { release in
-            UpdateAvailableView(release: release).environmentObject(store)
+        .sheet(item: Binding(get: { store.activeSheet }, set: { if $0 == nil { store.sheetDismissedWithoutAction() } })) { sheet in
+            switch sheet {
+            case .onboarding: OnboardingView().environmentObject(store)
+            case .update(let release): UpdateAvailableView(release: release).environmentObject(store)
+            }
         }
         .background(WindowSetup())
     }
@@ -425,7 +427,7 @@ struct PreferencesPage: View {
                     }
                 }
             }.padding(25).frame(maxWidth: .infinity, alignment: .leading).contentCard()
-            UpdateSettingsSection()
+            AboutSettingsSection()
             HStack(alignment: .top, spacing: 14) {
                 Image(systemName: "lock.shield").font(.system(size: 21)).foregroundStyle(store.accent)
                 VStack(alignment: .leading, spacing: 7) {
@@ -467,14 +469,19 @@ struct PreferencesPage: View {
     }
 }
 
-/// 偏好设置 ABOUT 分组：自动检查开关、手动检查与当前版本。
-struct UpdateSettingsSection: View {
+/// 偏好设置 ABOUT 分组：欢迎引导入口、自动检查开关、手动检查与当前版本。
+struct AboutSettingsSection: View {
     @EnvironmentObject var store: AppStore
 
     var body: some View {
         let checker = store.updateChecker
         VStack(alignment: .leading, spacing: 5) {
             Eyebrow(text: "ABOUT").padding(.bottom, 9)
+            SettingRow(title: L10n.text(zh: "欢迎引导", en: "Welcome Guide"),
+                       detail: L10n.text(zh: "查看各项权限的用途和当前状态", en: "Review what each permission unlocks and its status")) {
+                QuietButton(title: L10n.text(zh: "重新打开引导", en: "Show Welcome Guide"), symbol: "sparkles") { store.showOnboarding() }
+            }
+            Divider().opacity(0.3)
             SettingRow(title: L10n.text(zh: "自动检查更新", en: "Check for Updates Automatically"),
                        detail: L10n.text(zh: "启动时及每 24 小时向 GitHub 查询公开版本信息",
                                          en: "Checks GitHub's public release info at launch and every 24 hours")) {

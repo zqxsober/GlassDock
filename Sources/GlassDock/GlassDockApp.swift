@@ -62,6 +62,7 @@ struct GlassDockApp: App {
                 Divider()
             }
             Button("打开 GlassDock") { AppCoordinator.shared.showMainWindow() }
+            Button(L10n.text(zh: "欢迎引导…", en: "Welcome Guide…")) { store.showOnboarding() }
             Divider()
             Toggle("显示悬浮 Dock", isOn: $store.isDockVisible)
             Button("聚焦悬浮 Dock") { AppCoordinator.shared.focusDock() }
@@ -82,7 +83,7 @@ private struct MainWindowContent: View {
         DashboardView()
             .onAppear {
                 AppCoordinator.shared.start(store: store) { openWindow(id: "main") }
-                store.updateChecker.mainWindowDidAppear()
+                store.mainWindowDidAppear()
             }
     }
 }

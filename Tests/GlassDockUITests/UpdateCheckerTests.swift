@@ -18,7 +18,7 @@ import GlassDockCore
 import Testing
 @testable import GlassDock
 
-private final class MockFetcher: UpdateFetching, @unchecked Sendable {
+final class MockFetcher: UpdateFetching, @unchecked Sendable {
     private let lock = NSLock()
     private var _calls = 0
     var result: Result<UpdateFetchResult, Error>
