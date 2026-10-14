@@ -1,0 +1,17 @@
+.DS_Store
+.build/
+.swiftpm/
+.codegraph/
+.codex/
+.agents/
+.aws/
+dist/
+output/
+*.dmg
+*.zip
+*.log
+*.p12
+*.mobileprovision
+.env
+.env.*
+!.env.example

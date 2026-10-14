@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 zqxsober. SPDX-License-Identifier: Apache-2.0 -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key><string>GlassDock</string>
+    <key>CFBundleDisplayName</key><string>GlassDock</string>
+    <key>CFBundleIdentifier</key><string>local.glassdock.app</string>
+    <key>CFBundleExecutable</key><string>GlassDock</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.0.1</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>LSMinimumSystemVersion</key><string>26.0</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>NSHumanReadableCopyright</key><string>Copyright 2026 zqxsober. Licensed under Apache-2.0.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key><string>在你连接日历组件后，读取日程以展示下一个事件和今日议程。</string>
+    <key>NSRemindersFullAccessUsageDescription</key><string>在你连接提醒事项组件后，展示提醒列表，并允许你手动标记完成。</string>
+    <key>NSAppleEventsUsageDescription</key><string>在你连接音乐组件后，读取 Apple Music 当前播放信息并响应播放控制。</string>
+</dict>
+</plist>
