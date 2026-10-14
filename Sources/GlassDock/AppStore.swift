@@ -76,6 +76,7 @@ final class AppStore: ObservableObject {
     @Published var isWidgetEditorPresented = false
     let widgets = WidgetRuntime()
     let windowTracker = DockWindowTracker()
+    let updateChecker: UpdateChecker
 
     private let defaults: UserDefaults
     private var subscriptions = Set<AnyCancellable>()
@@ -87,6 +88,7 @@ final class AppStore: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        updateChecker = UpdateChecker(defaults: defaults)
         if let data = defaults.data(forKey: Self.preferencesKey),
            var decoded = try? JSONDecoder().decode(DockPreferences.self, from: data) {
             decoded.normalize()
@@ -98,6 +100,8 @@ final class AppStore: ObservableObject {
         }
         focus.reset(minutes: preferences.focusMinutes)
         widgets.sync(configurations: preferences.customWidgets)
+        updateChecker.objectWillChange.receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &subscriptions)
         windowTracker.objectWillChange.receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &subscriptions)
         windowTracker.$errorMessage.compactMap { $0 }.receive(on: RunLoop.main)

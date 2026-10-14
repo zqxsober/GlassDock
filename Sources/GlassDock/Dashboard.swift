@@ -88,6 +88,10 @@ struct DashboardView: View {
         .alert("GlassDock", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("知道了", role: .cancel) { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }
+        .sheet(item: Binding(get: { store.updateChecker.presentedRelease },
+                             set: { store.updateChecker.presentedRelease = $0 })) { release in
+            UpdateAvailableView(release: release).environmentObject(store)
+        }
         .background(WindowSetup())
     }
 
@@ -421,11 +425,14 @@ struct PreferencesPage: View {
                     }
                 }
             }.padding(25).frame(maxWidth: .infinity, alignment: .leading).contentCard()
+            UpdateSettingsSection()
             HStack(alignment: .top, spacing: 14) {
                 Image(systemName: "lock.shield").font(.system(size: 21)).foregroundStyle(store.accent)
                 VStack(alignment: .leading, spacing: 7) {
                     Text("你的桌面，只属于你。").font(.system(size: 12, weight: .medium))
-                    Text("设置仅保存在本机。不读取其他应用的登录信息，不修改系统 Dock，不调用私有接口。关闭 GlassDock 即可移除悬浮栏。")
+                    Text("设置仅保存在本机。不读取其他应用的登录信息，不修改系统 Dock，不调用私有接口。关闭 GlassDock 即可移除悬浮栏。"
+                         + L10n.text(zh: "检查更新时只读取 GitHub 公开的版本信息，不上传任何数据。",
+                                     en: " Update checks only read public release info from GitHub; nothing is uploaded."))
                         .font(.system(size: 11)).foregroundStyle(Color.muted).lineSpacing(5)
                 }
             }.padding(23).frame(maxWidth: .infinity, alignment: .leading).contentCard(radius: 20)
@@ -457,5 +464,64 @@ struct PreferencesPage: View {
                 @unknown default: break
                 }
             }
+    }
+}
+
+/// 偏好设置 ABOUT 分组：自动检查开关、手动检查与当前版本。
+struct UpdateSettingsSection: View {
+    @EnvironmentObject var store: AppStore
+
+    var body: some View {
+        let checker = store.updateChecker
+        VStack(alignment: .leading, spacing: 5) {
+            Eyebrow(text: "ABOUT").padding(.bottom, 9)
+            SettingRow(title: L10n.text(zh: "自动检查更新", en: "Check for Updates Automatically"),
+                       detail: L10n.text(zh: "启动时及每 24 小时向 GitHub 查询公开版本信息",
+                                         en: "Checks GitHub's public release info at launch and every 24 hours")) {
+                Toggle(L10n.text(zh: "自动检查更新", en: "Check for Updates Automatically"),
+                       isOn: Binding(get: { checker.isAutoCheckEnabled }, set: { checker.isAutoCheckEnabled = $0 }))
+                    .labelsHidden().toggleStyle(.switch).controlSize(.small)
+            }
+            Divider().opacity(0.3)
+            SettingRow(title: L10n.text(zh: "检查更新", en: "Check for Updates"), detail: resultText(checker.state)) {
+                HStack(spacing: 10) {
+                    if checker.state == .checking { ProgressView().controlSize(.small) }
+                    if case .available(let release, _) = checker.state {
+                        Button(L10n.text(zh: "查看", en: "View")) { checker.presentedRelease = release }
+                            .buttonStyle(.link)
+                    }
+                    QuietButton(title: L10n.text(zh: "检查更新", en: "Check for Updates"), symbol: "arrow.triangle.2.circlepath") {
+                        checker.checkNow()
+                    }.disabled(checker.state == .checking)
+                }
+            }
+            Text(footer(checker)).font(.system(size: 10)).foregroundStyle(Color.muted).padding(.top, 4)
+        }.padding(25).contentCard()
+    }
+
+    private func resultText(_ state: UpdateCheckState) -> String {
+        switch state {
+        case .idle:
+            return L10n.text(zh: "尚未检查", en: "Not checked yet")
+        case .checking:
+            return L10n.text(zh: "检查中…", en: "Checking…")
+        case .upToDate(let current):
+            return L10n.text(zh: "已是最新版本（\(current)）", en: "You're up to date (\(current))")
+        case .available(let release, let skipped):
+            let text = L10n.text(zh: "有新版本 \(release.displayVersion)", en: "Version \(release.displayVersion) available")
+            return skipped ? text + L10n.text(zh: "（已忽略）", en: " (skipped)") : text
+        case .failed(let devBuild):
+            return devBuild
+                ? L10n.text(zh: "开发版本，无法比较", en: "Development build; can't compare versions")
+                : L10n.text(zh: "检查失败：网络不可用或请求过于频繁，请稍后再试。",
+                            en: "Couldn't check for updates. Check your connection or try again later.")
+        }
+    }
+
+    private func footer(_ checker: UpdateChecker) -> String {
+        let last = checker.lastCheckDate.map { $0.formatted(date: .abbreviated, time: .shortened) }
+            ?? L10n.text(zh: "从未", en: "Never")
+        return L10n.text(zh: "当前版本 \(checker.currentVersion) · 上次检查：\(last)",
+                         en: "Current version \(checker.currentVersion) · Last checked: \(last)")
     }
 }

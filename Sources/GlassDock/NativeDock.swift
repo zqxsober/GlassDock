@@ -307,6 +307,7 @@ final class AppCoordinator {
         guard controller == nil else { return }
         controller = DockPanelController(store: store)
         store.isDockVisible = store.preferences.showDockOnLaunch
+        store.updateChecker.start()
     }
 
     func showMainWindow() {
