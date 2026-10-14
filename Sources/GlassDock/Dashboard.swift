@@ -88,6 +88,7 @@ struct DashboardView: View {
         .alert("GlassDock", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("知道了", role: .cancel) { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }
+        .sheet(isPresented: $store.isOnboardingPresented) { OnboardingView().environmentObject(store) }
         .background(WindowSetup())
     }
 
@@ -421,6 +422,13 @@ struct PreferencesPage: View {
                     }
                 }
             }.padding(25).frame(maxWidth: .infinity, alignment: .leading).contentCard()
+            VStack(alignment: .leading, spacing: 5) {
+                Eyebrow(text: "ABOUT").padding(.bottom, 9)
+                SettingRow(title: L10n.text(zh: "欢迎引导", en: "Welcome Guide"),
+                           detail: L10n.text(zh: "查看各项权限的用途和当前状态", en: "Review what each permission unlocks and its status")) {
+                    QuietButton(title: L10n.text(zh: "重新打开引导", en: "Show Welcome Guide"), symbol: "sparkles") { store.showOnboarding() }
+                }
+            }.padding(25).contentCard()
             HStack(alignment: .top, spacing: 14) {
                 Image(systemName: "lock.shield").font(.system(size: 21)).foregroundStyle(store.accent)
                 VStack(alignment: .leading, spacing: 7) {
