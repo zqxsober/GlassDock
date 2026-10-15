@@ -54,6 +54,7 @@ The `v0.0.1` DMG is ad-hoc signed and has not been notarized by Apple. On first 
 - **Calendar and Reminders**: Access is requested only after you connect the corresponding widget.
 - **Automation (Music)**: Control of the macOS Music app is requested only after you connect an Apple Music widget.
 - **Codex usage**: Install the [Codex CLI](https://developers.openai.com/codex/cli/) and sign in with your ChatGPT account to read that account's plan usage. The widget requests quota status only; it does not send a conversation prompt or trigger model inference. Data includes remaining usage and reset times for the 5-hour and 7-day windows.
+- **CPU temperature**: Only the CPU Temperature widget reads an undocumented sensor interface (IOHIDEventSystem on Apple silicon, AppleSMC on Intel) — read-only, never sent anywhere, and no extra permission is needed. If a macOS update makes the interface unavailable, the widget shows "Unavailable".
 - **Local settings**: Dock layout and widget configuration are stored in local UserDefaults. GlassDock does not require a GlassDock account or provide cloud sync.
 
 ## Development

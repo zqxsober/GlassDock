@@ -54,6 +54,7 @@ GlassDock 是一个为 macOS 26 及以上版本设计的原生悬浮 Dock。它�
 - **日历与提醒事项**：只有连接相应组件后才会请求访问权限。
 - **自动化（音乐）**：只有连接 Apple Music 组件后才会请求控制 macOS“音乐”App。
 - **Codex 额度**：需要安装 [Codex CLI](https://developers.openai.com/codex/cli/) 并登录 ChatGPT 账号，额度组件才可读取该账号的套餐额度。它只查询额度状态，不发送对话提示词，也不触发模型推理；数据包括 5 小时和 7 天窗口的剩余额度及重置时间。
+- **CPU 温度**：仅 CPU 温度组件会读取系统未公开的传感器接口（Apple 芯片为 IOHIDEventSystem，Intel 为 AppleSMC），只读、不联网，不需要额外权限。系统更新导致接口不可用时，组件显示“不可用”。
 - **本地设置**：Dock 布局和组件配置保存在本机的 UserDefaults 中。GlassDock 不要求 GlassDock 账户，也没有云端同步。
 
 ## 开发

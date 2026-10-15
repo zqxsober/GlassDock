@@ -83,6 +83,10 @@ struct WidgetTile: View {
     }
 
     private var widgetAccessibilityLabel: String {
+        if configuration.kind.isCPUTemperature {
+            return CPUTemperatureDescription.accessibilityLabel(
+                title: configuration.displayTitle, state: runtime.cpuTemperature, unit: configuration.resolvedTemperatureUnit)
+        }
         guard isAIUsageWidget else { return "\(configuration.displayTitle)，按回车打开配置" }
         let fiveHour = usagePercentLabel(runtime.codexUsage?.fiveHour?.remainingPercent)
         let sevenDay = usagePercentLabel(runtime.codexUsage?.sevenDay?.remainingPercent)
@@ -91,6 +95,9 @@ struct WidgetTile: View {
     }
 
     private var widgetHelpDescription: String {
+        if configuration.kind.isCPUTemperature {
+            return CPUTemperatureDescription.help(state: runtime.cpuTemperature, unit: configuration.resolvedTemperatureUnit)
+        }
         guard isAIUsageWidget else { return configuration.displayTitle }
         return runtime.codexUsageError.map { "\(configuration.displayTitle)：\($0)" }
             ?? "\(configuration.displayTitle)，本机 Codex 额度"
@@ -203,6 +210,25 @@ private struct ObservedWidgetDetails: View {
         case .airDrop:
             commonTitle
             airDropControls
+        case .cpuTemperatureNumber, .cpuTemperatureRing:
+            commonTitle
+            temperatureUnitControls
+        }
+    }
+
+    private var temperatureUnitControls: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("单位").font(.system(size: 10, weight: .medium))
+            Picker("单位", selection: Binding(
+                get: { configuration?.resolvedTemperatureUnit ?? .celsius },
+                set: { unit in updateConfiguration { $0.temperatureUnit = unit } }
+            )) {
+                Text("摄氏 °C").tag(TemperatureUnit.celsius)
+                Text("华氏 °F").tag(TemperatureUnit.fahrenheit)
+            }
+            .pickerStyle(.segmented).labelsHidden()
+            Text("温度读取自系统未公开的传感器接口，只读、不联网；读不到时显示“不可用”。")
+                .font(.system(size: 9)).foregroundStyle(Color.muted)
         }
     }
 

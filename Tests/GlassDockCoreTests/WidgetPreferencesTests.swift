@@ -20,10 +20,10 @@ import Testing
 @Suite("Widget catalog and migration")
 struct WidgetPreferencesTests {
     @Test func catalogIncludesAllDocksetLayoutsWithStableUniqueIdentifiers() {
-        #expect(DockWidgetKind.allCases.count == 43)
-        #expect(Set(DockWidgetKind.allCases.map(\.rawValue)).count == 43)
+        #expect(DockWidgetKind.allCases.count == 45)
+        #expect(Set(DockWidgetKind.allCases.map(\.rawValue)).count == 45)
         #expect(Set(DockWidgetKind.allCases.map(\.category)) == Set(DockWidgetCategory.allCases))
-        #expect(DockWidgetKind.availableKinds.count == 35)
+        #expect(DockWidgetKind.availableKinds.count == 37)
         #expect(Set(DockWidgetKind.availableKinds.map(\.category)) == Set(DockWidgetCategory.availableCategories))
         #expect(!DockWidgetKind.availableKinds.contains { [.business, .stocks].contains($0.category) })
         #expect(DockWidgetKind.allCases.filter(\.requiresExternalData).count == 15)
@@ -41,7 +41,7 @@ struct WidgetPreferencesTests {
         #expect(DockWidgetKind.aiCapsules.category == .ai)
         #expect(DockWidgetKind.aiCapsules.preferredWidth == 220)
         #expect(DockWidgetKind.aiCapsules.requiresExternalData)
-        #expect(DockWidgetKind.allCases.count == 43)
+        #expect(DockWidgetKind.allCases.count == 45)
     }
 
     @Test func oldSettingsKeepAppsAndChoicesWithoutNewFields() throws {
