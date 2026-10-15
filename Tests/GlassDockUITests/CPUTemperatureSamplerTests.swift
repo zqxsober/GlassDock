@@ -75,6 +75,22 @@ struct CPUTemperatureSamplerTests {
         #expect(!AppleSiliconTemperatureSource.isCPUSensor(name: "NAND CH0 temp"))
     }
 
+    /// 必须与 C 的 SMCKeyData_t 完全一致，否则 AppleSMC 返回 kIOReturnBadArgument 或字段错位。
+    @Test func smcKeyDataMatchesCLayout() {
+        typealias KeyData = IntelSMCTemperatureSource.KeyData
+        #expect(MemoryLayout<IntelSMCTemperatureSource.KeyInfo>.size == 12)
+        #expect(MemoryLayout<KeyData>.size == 80)
+        #expect(MemoryLayout<KeyData>.offset(of: \.key) == 0)
+        #expect(MemoryLayout<KeyData>.offset(of: \.vers) == 4)
+        #expect(MemoryLayout<KeyData>.offset(of: \.pLimitData) == 12)
+        #expect(MemoryLayout<KeyData>.offset(of: \.keyInfo) == 28)
+        #expect(MemoryLayout<KeyData>.offset(of: \.result) == 40)
+        #expect(MemoryLayout<KeyData>.offset(of: \.status) == 41)
+        #expect(MemoryLayout<KeyData>.offset(of: \.data8) == 42)
+        #expect(MemoryLayout<KeyData>.offset(of: \.data32) == 44)
+        #expect(MemoryLayout<KeyData>.offset(of: \.bytes) == 48)
+    }
+
     @Test func smcDecoding() {
         let sp78 = IntelSMCTemperatureSource.fourCharCode("sp78")
         #expect(IntelSMCTemperatureSource.decode(type: sp78, bytes: [0x34, 0x80]) == 52.5)

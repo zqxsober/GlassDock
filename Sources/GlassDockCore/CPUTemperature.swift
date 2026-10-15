@@ -116,12 +116,9 @@ public struct CPUTemperatureStateMachine: Equatable, Sendable {
         }
         guard let readings else {
             consecutiveFailures += 1
-            // 失败期间不保留旧值：首笔前保持“正在采样”，达到上限后不可用。
-            if consecutiveFailures >= Self.failureLimit {
-                state = .unavailable
-            } else if case .reading = state {
-                state = .sampling
-            }
+            // 上限以内保留上一次的真实读数（避免在数值与“正在采样”之间闪烁）；
+            // 达到上限后不可用，不再显示旧值。
+            if consecutiveFailures >= Self.failureLimit { state = .unavailable }
             return
         }
         consecutiveFailures = 0

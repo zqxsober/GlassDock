@@ -186,11 +186,17 @@ final class AppleSiliconTemperatureSource: CPUTemperatureSource {
 
 /// 读取 AppleSMC 的 CPU 温度 key。IOKit 调用是公开的，SMC key 协议没有公开文档。
 final class IntelSMCTemperatureSource: CPUTemperatureSource {
-    private struct KeyVersion { var major: UInt8 = 0, minor: UInt8 = 0, build: UInt8 = 0, reserved: UInt8 = 0, release: UInt16 = 0 }
-    private struct PLimitData { var version: UInt16 = 0, length: UInt16 = 0, cpuPLimit: UInt32 = 0, gpuPLimit: UInt32 = 0, memPLimit: UInt32 = 0 }
-    private struct KeyInfo { var dataSize: UInt32 = 0, dataType: UInt32 = 0, dataAttributes: UInt8 = 0 }
-    /// 与 AppleSMC 用户客户端的 SMCKeyData_t 布局一致（80 字节）。
-    private struct KeyData {
+    struct KeyVersion { var major: UInt8 = 0, minor: UInt8 = 0, build: UInt8 = 0, reserved: UInt8 = 0, release: UInt16 = 0 }
+    struct PLimitData { var version: UInt16 = 0, length: UInt16 = 0, cpuPLimit: UInt32 = 0, gpuPLimit: UInt32 = 0, memPLimit: UInt32 = 0 }
+    /// C 中 9 字节内容按 4 字节对齐补齐到 12；Swift 内嵌结构按 size（而非 stride）排下一个字段，
+    /// 所以必须显式补 3 字节，否则 result 会落在偏移 37、总长只有 76。
+    struct KeyInfo {
+        var dataSize: UInt32 = 0, dataType: UInt32 = 0, dataAttributes: UInt8 = 0
+        var padding: (UInt8, UInt8, UInt8) = (0, 0, 0)
+    }
+    /// 与 AppleSMC 用户客户端的 SMCKeyData_t 布局一致：key@0, vers@4, pLimitData@12, keyInfo@28,
+    /// result@40, status@41, data8@42, data32@44, bytes@48，共 80 字节（有单元测试断言）。
+    struct KeyData {
         var key: UInt32 = 0
         var vers = KeyVersion()
         var pLimitData = PLimitData()
@@ -228,9 +234,22 @@ final class IntelSMCTemperatureSource: CPUTemperatureSource {
 
     func readCPUTemperatures() -> [Double]? {
         guard connection != 0 else { return nil }
-        if usableKeys == nil { usableKeys = Self.cpuKeys.filter { read(key: $0) != nil } }
-        let values = (usableKeys ?? []).compactMap { read(key: $0) }
-        return values.isEmpty ? nil : values
+        if let usableKeys {
+            let values = usableKeys.compactMap { read(key: $0) }
+            return values.isEmpty ? nil : values
+        }
+        // 只有探测到至少一个可读 key 时才缓存，首次全部失败下次重新探测。
+        var found: [String] = []
+        var values: [Double] = []
+        for key in Self.cpuKeys {
+            if let value = read(key: key) {
+                found.append(key)
+                values.append(value)
+            }
+        }
+        guard !found.isEmpty else { return nil }
+        usableKeys = found
+        return values
     }
 
     static func fourCharCode(_ text: String) -> UInt32 {
@@ -266,9 +285,9 @@ final class IntelSMCTemperatureSource: CPUTemperatureSource {
 
     private func call(_ input: inout KeyData) -> KeyData? {
         var output = KeyData()
-        var outputSize = MemoryLayout<KeyData>.stride
+        var outputSize = MemoryLayout<KeyData>.size
         let status = IOConnectCallStructMethod(connection, Self.handleYPCEvent,
-                                               &input, MemoryLayout<KeyData>.stride, &output, &outputSize)
+                                               &input, MemoryLayout<KeyData>.size, &output, &outputSize)
         return status == kIOReturnSuccess ? output : nil
     }
 }

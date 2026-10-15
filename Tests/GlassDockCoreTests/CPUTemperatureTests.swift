@@ -70,6 +70,12 @@ struct CPUTemperatureTests {
         #expect(machine.state == .reading(TemperatureAggregate(sensors: [55, 65])!))
     }
 
+    @Test func failuresBeforeFirstReadingStaySampling() {
+        var machine = CPUTemperatureStateMachine()
+        machine.record(readings: nil)
+        #expect(machine.state == .sampling)
+    }
+
     @Test func missingSourceIsImmediatelyUnavailable() {
         var machine = CPUTemperatureStateMachine()
         machine.record(readings: nil, sourceAvailable: false)
@@ -88,7 +94,8 @@ struct CPUTemperatureTests {
         var machine = CPUTemperatureStateMachine()
         machine.record(readings: [60])
         for _ in 0..<(CPUTemperatureStateMachine.failureLimit - 1) { machine.record(readings: nil) }
-        #expect(machine.state == .sampling) // 不保留旧值
+        #expect(machine.state == .reading(TemperatureAggregate(sensors: [60])!)) // 上限内保留上次读数
+        #expect(machine.consecutiveFailures == CPUTemperatureStateMachine.failureLimit - 1)
         machine.record(readings: nil)
         #expect(machine.state == .unavailable)
         machine.record(readings: [61])
