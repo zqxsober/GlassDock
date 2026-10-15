@@ -9,6 +9,7 @@ trademarks or technologies of Apple Inc. OpenAI and Codex are trademarks
 or technologies of OpenAI. GlassDock is an independent project and is
 not affiliated with or endorsed by Apple or OpenAI.
 
-Application icons and music artwork displayed at runtime belong to their
-respective owners. They are read from the user's local applications or
-Apple Music and are not included as redistributed assets in this project.
+Application icons and music artwork belong to their respective owners.
+They may appear in documentation screenshots of the application UI, but
+are not distributed as standalone icon or artwork assets and are not
+covered by this project's Apache-2.0 license.
