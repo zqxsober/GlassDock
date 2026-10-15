@@ -30,7 +30,7 @@
 
 GlassDock 将常用应用、文件夹、当前屏幕上的应用窗口，以及时钟、音乐、系统状态和 Codex 额度整合在一条可调整的悬浮栏中。你可以只保留应用入口，也可以按自己的工作方式添加组件。
 
-> 当前下载版本为 **v0.0.1**，使用临时签名，**未经 Apple 公证**。首次启动引导已合入主分支，尚未包含在 v0.0.1 安装包中；功能以所下载版本的[发布说明](https://github.com/zqxsober/GlassDock/releases)为准。
+> 当前下载版本为 **v0.0.2**，使用 ad-hoc 临时签名，**未经 Apple 公证**。本版本包含可选的首次启动权限引导；功能以所下载版本的[发布说明](https://github.com/zqxsober/GlassDock/releases)为准。
 
 ## 功能概览
 
@@ -90,27 +90,27 @@ GlassDock 将常用应用、文件夹、当前屏幕上的应用窗口，以及�
 
 **Codex 额度如何连接？** 安装 [Codex CLI](https://developers.openai.com/codex/cli/)，使用 ChatGPT 账户登录，再添加 AI 额度组件。GlassDock 通过本机 CLI 读取账户额度，无需在组件中填写 API Key；额度查询不发送对话提示词，也不发起模型推理。无法读取时显示未连接状态，不会用模拟额度代替。
 
-天气尚未连接实时服务；商业数据和股票组件已从可选列表移除。自动更新检查与 CPU 温度组件仍在开发审查中，不属于 v0.0.1 功能。
+天气尚未连接实时服务；商业数据和股票组件已从可选列表移除。自动更新检查与 CPU 温度组件仍在开发审查中，不属于 v0.0.2 功能。
 
 ## 快速开始
 
 ### 系统要求
 
 - macOS **26 或更高版本**。
-- Apple 芯片或 Intel Mac；v0.0.1 DMG 为包含 `arm64` 和 `x86_64` 的通用包。Intel 架构已交叉编译，尚未进行 Intel 真机运行验证。
+- Apple 芯片或 Intel Mac；v0.0.2 DMG 为包含 `arm64` 和 `x86_64` 的通用包。Intel 架构已交叉编译，尚未进行 Intel 真机运行验证。
 
 ### 安装
 
-1. 从 [GitHub Releases](https://github.com/zqxsober/GlassDock/releases/latest) 下载 `GlassDock-v0.0.1-universal.dmg`。
+1. 从 [GitHub Releases](https://github.com/zqxsober/GlassDock/releases/latest) 下载 `GlassDock-v0.0.2-universal.dmg`。
 2. 打开 DMG，将 `GlassDock.app` 拖入“应用程序”文件夹，再从那里启动。
 3. 添加需要的应用和组件，并按功能需要授予相应权限。
 
-> **首次打开提示开发者无法验证？** v0.0.1 使用 ad-hoc 临时签名，未经过 Apple 公证。请先确认下载来源，再按 macOS 的提示在“系统设置 → 隐私与安全性”中决定是否允许打开。无需全局关闭 Gatekeeper。
+> **首次打开提示开发者无法验证？** v0.0.2 使用 ad-hoc 临时签名，未经过 Apple 公证，Gatekeeper 可能阻止打开。请先确认下载来源，再按 macOS 的提示在“系统设置 → 隐私与安全性”中决定是否允许打开。无需全局关闭 Gatekeeper。
 
 发布页同时提供 SHA-256 校验文件。将 DMG 和对应的 `.sha256` 文件放在同一目录后执行：
 
 ```bash
-shasum -a 256 -c GlassDock-v0.0.1-universal.dmg.sha256
+shasum -a 256 -c GlassDock-v0.0.2-universal.dmg.sha256
 ```
 
 ### 权限与隐私
@@ -124,6 +124,8 @@ shasum -a 256 -c GlassDock-v0.0.1-universal.dmg.sha256
 | 提醒事项 | 显示提醒列表并标记完成 | 提醒组件提示连接 |
 | 自动化（音乐） | 读取并控制 macOS“音乐”App | 音乐组件提示连接 |
 | Codex CLI 登录 | 读取已登录账户的套餐额度 | AI 额度显示未连接状态 |
+
+首次启动会显示可选权限引导，介绍辅助功能、日历、提醒事项和音乐自动化权限，并说明如何连接 Codex CLI 额度。所有权限均可跳过；选择“稍后再说”或“完成”都会保存引导状态。已有配置的 v0.0.1 用户升级时不会看到引导自动弹出，可从偏好设置或菜单栏的“重新打开引导”入口手动查看。引导和该入口支持中文、英文；这不表示应用其他界面已全面双语化。
 
 Dock 布局和组件配置存放在本机 UserDefaults 中。GlassDock 不要求单独注册账户，也没有云端同步；Codex 额度依赖你已有的 Codex 登录状态。
 
@@ -165,7 +167,7 @@ xcrun swift test --disable-sandbox
 ./scripts/release.sh
 ```
 
-脚本读取 `Resources/Info.plist` 中的版本，构建 `arm64` 和 `x86_64`，生成 DMG、SHA-256 校验文件和构建信息。也可用 `--version 0.0.1` 校验预期版本；目标安装包已存在时会拒绝覆盖。
+脚本读取 `Resources/Info.plist` 中的版本，构建 `arm64` 和 `x86_64`，生成 DMG、SHA-256 校验文件和构建信息。也可用 `--version 0.0.2` 校验预期版本；目标安装包已存在时会拒绝覆盖。
 
 | 环境变量 | 用途 |
 | --- | --- |
@@ -192,7 +194,7 @@ docs/                   发布说明与文档图片
 
 ## 开发进展与反馈
 
-- **已合入主分支**：[首次启动权限引导（#3）](https://github.com/zqxsober/GlassDock/pull/3)，待后续版本发布。
+- **已发布**：[首次启动权限引导（#3）](https://github.com/zqxsober/GlassDock/pull/3)，包含于 v0.0.2。
 - **开发审查中**：[GitHub Releases 更新检查（#4）](https://github.com/zqxsober/GlassDock/pull/4)、[CPU 温度组件（#6）](https://github.com/zqxsober/GlassDock/pull/6)。
 - 问题和建议请提交到 [Issues](https://github.com/zqxsober/GlassDock/issues)。报告问题时，请附上 macOS 版本、GlassDock 版本和复现步骤；截图请先遮挡窗口标题等个人信息。
 

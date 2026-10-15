@@ -42,11 +42,21 @@ Weather widgets are currently UI placeholders. No weather provider is connected,
 
 ## Install
 
-1. Download the GlassDock DMG from [GitHub Releases](https://github.com/zqxsober/GlassDock/releases/latest).
+1. Download `GlassDock-v0.0.2-universal.dmg` from [GitHub Releases](https://github.com/zqxsober/GlassDock/releases/latest). It includes `arm64` and `x86_64` and requires macOS 26 or later. The Intel binary is cross-compiled and has not been run on Intel hardware.
 2. Open the DMG, drag `GlassDock.app` into Applications, then launch it from there.
 3. Grant the permissions requested by the features you choose to use.
 
-The `v0.0.1` DMG is ad-hoc signed and has not been notarized by Apple. On first launch, Gatekeeper may warn that the developer cannot be verified or block the app. Check the release page for signing details and follow macOS prompts in **System Settings → Privacy & Security** to decide whether to allow it. Signing and notarization status for later versions will be stated in their release notes.
+The `v0.0.2` DMG is ad-hoc signed and has not been notarized by Apple. On first launch, Gatekeeper may warn that the developer cannot be verified or block the app. Check the release page for signing details and follow macOS prompts in **System Settings → Privacy & Security** to decide whether to allow it. Do not disable Gatekeeper globally.
+
+The release page also provides a SHA-256 checksum. With the DMG and its `.sha256` file in the same directory, verify the download with:
+
+```bash
+shasum -a 256 -c GlassDock-v0.0.2-universal.dmg.sha256
+```
+
+### First-launch setup
+
+Version 0.0.2 includes an optional setup guide for Accessibility, Calendar, Reminders, and Music automation, plus instructions for connecting Codex usage. Every permission is optional. **Not Now** and **Done** both save the guide as completed. Existing v0.0.1 installs with saved preferences are handled silently; users can reopen the guide from Settings or the menu bar. The guide and its reopen entry are available in Chinese and English; this language support is limited to those surfaces and does not localize the rest of the app.
 
 ## Permissions and privacy
 
@@ -55,6 +65,8 @@ The `v0.0.1` DMG is ad-hoc signed and has not been notarized by Apple. On first 
 - **Automation (Music)**: Control of the macOS Music app is requested only after you connect an Apple Music widget.
 - **Codex usage**: Install the [Codex CLI](https://developers.openai.com/codex/cli/) and sign in with your ChatGPT account to read that account's plan usage. The widget requests quota status only; it does not send a conversation prompt or trigger model inference. Data includes remaining usage and reset times for the 5-hour and 7-day windows.
 - **Local settings**: Dock layout and widget configuration are stored in local UserDefaults. GlassDock does not require a GlassDock account or provide cloud sync.
+
+After an ad-hoc update, macOS may not retain Accessibility authorization. If window actions stop working, remove the stale GlassDock entry in **System Settings → Privacy & Security → Accessibility**, then enable the currently installed app.
 
 ## Development
 
@@ -74,10 +86,10 @@ xcrun swift test --disable-sandbox
 
 Set `DEVELOPER_ID_APPLICATION` to sign `build.sh` output with a Developer ID Application certificate. The release script targets a universal DMG for Apple silicon (`arm64`) and Intel (`x86_64`).
 
-Create the `v0.0.1` release package with:
+Create the `v0.0.2` release package with:
 
 ```bash
-./scripts/release.sh --version 0.0.1
+./scripts/release.sh --version 0.0.2
 ```
 
 If a Developer ID Application certificate and `notarytool` credentials are configured, set `DEVELOPER_ID_APPLICATION` and `NOTARYTOOL_PROFILE` for signing and notarization. Check the release page for the script output and the release's actual signing status.
