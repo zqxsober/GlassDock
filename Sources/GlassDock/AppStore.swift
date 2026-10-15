@@ -74,6 +74,7 @@ final class AppStore: ObservableObject {
     @Published var toast: String?
     @Published var presentedWidgetID: UUID?
     @Published var isWidgetEditorPresented = false
+    @Published var isOnboardingPresented = false
     let widgets = WidgetRuntime()
     let windowTracker = DockWindowTracker()
 
@@ -83,10 +84,25 @@ final class AppStore: ObservableObject {
     private var toastTask: Task<Void, Never>?
     private var tickCount = 0
     private var dockScreenFrame: NSRect?
+    /// 本次启动是否需要自动弹出首次启动引导；在读取偏好前判定。
+    private var shouldAutoPresentOnboarding = false
     private static let preferencesKey = "glassdock.preferences.v1"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        let onboardingDecision = OnboardingPolicy.launchDecision(
+            completedVersion: defaults.object(forKey: OnboardingPolicy.completedVersionKey) as? Int,
+            hasExistingPreferences: defaults.data(forKey: Self.preferencesKey) != nil
+        )
+        switch onboardingDecision {
+        case .markCompletedSilently:
+            defaults.set(OnboardingPolicy.currentVersion, forKey: OnboardingPolicy.completedVersionKey)
+        case .present where defaults.object(forKey: OnboardingPolicy.completedVersionKey) == nil:
+            // 记下“已开始未完成”，避免新用户写入偏好后、未完成引导就被误判为老用户。
+            defaults.set(OnboardingPolicy.pendingVersion, forKey: OnboardingPolicy.completedVersionKey)
+        default:
+            break
+        }
         if let data = defaults.data(forKey: Self.preferencesKey),
            var decoded = try? JSONDecoder().decode(DockPreferences.self, from: data) {
             decoded.normalize()
@@ -96,6 +112,7 @@ final class AppStore: ObservableObject {
             initial.applications = Self.defaultApplications()
             preferences = initial
         }
+        shouldAutoPresentOnboarding = onboardingDecision == .present
         focus.reset(minutes: preferences.focusMinutes)
         widgets.sync(configurations: preferences.customWidgets)
         windowTracker.objectWillChange.receive(on: RunLoop.main)
@@ -407,5 +424,26 @@ final class AppStore: ObservableObject {
                 ?? url.deletingPathExtension().lastPathComponent
             return PinnedApplication(name: name, path: url.path)
         }
+    }
+
+    // MARK: - 首次启动引导
+
+    /// 主窗口出现时调用；只在全新安装的首次启动自动弹出一次。
+    func presentOnboardingIfNeeded() {
+        guard shouldAutoPresentOnboarding else { return }
+        shouldAutoPresentOnboarding = false
+        isOnboardingPresented = true
+    }
+
+    /// 设置与菜单栏中的“重新打开引导”入口，不改变已记录的完成状态。
+    func showOnboarding() {
+        AppCoordinator.shared.showMainWindow()
+        isOnboardingPresented = true
+    }
+
+    /// “完成”与“稍后再说”都记为已完成；直接关闭主窗口不记录，下次启动会再弹。
+    func finishOnboarding() {
+        defaults.set(OnboardingPolicy.currentVersion, forKey: OnboardingPolicy.completedVersionKey)
+        isOnboardingPresented = false
     }
 }

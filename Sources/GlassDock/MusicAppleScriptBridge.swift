@@ -168,16 +168,20 @@ enum MusicAppleScriptBridge {
     }
 
     private static func determineAccess(askUserIfNeeded: Bool) -> WidgetAccessState {
-        guard isRunning else { return .unavailable }
+        accessState(forPermissionStatus: automationPermissionStatus(askUserIfNeeded: askUserIfNeeded))
+    }
+
+    /// 返回自动化权限的原始 OSStatus；“音乐”未运行时为 procNotFound。供首次启动引导复用。
+    static func automationPermissionStatus(askUserIfNeeded: Bool) -> OSStatus {
+        guard isRunning else { return OSStatus(procNotFound) }
         let target = NSAppleEventDescriptor(bundleIdentifier: applicationBundleIdentifier)
-        guard let addressDescriptor = target.aeDesc else { return .unavailable }
-        let status = AEDeterminePermissionToAutomateTarget(
+        guard let addressDescriptor = target.aeDesc else { return OSStatus(procNotFound) }
+        return AEDeterminePermissionToAutomateTarget(
             addressDescriptor,
             typeWildCard,
             typeWildCard,
             askUserIfNeeded
         )
-        return accessState(forPermissionStatus: status)
     }
 
     private static func artworkData(expectedTrackIdentity: String) -> ArtworkResult {
