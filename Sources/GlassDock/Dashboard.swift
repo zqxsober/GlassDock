@@ -425,7 +425,10 @@ struct PreferencesPage: View {
                 Image(systemName: "lock.shield").font(.system(size: 21)).foregroundStyle(store.accent)
                 VStack(alignment: .leading, spacing: 7) {
                     Text("你的桌面，只属于你。").font(.system(size: 12, weight: .medium))
-                    Text("设置仅保存在本机。不读取其他应用的登录信息，不修改系统 Dock，不调用私有接口。关闭 GlassDock 即可移除悬浮栏。")
+                    Text(L10n.text(
+                        zh: "设置仅保存在本机。不读取其他应用的登录信息。不修改系统 Dock。仅 CPU 温度组件会读取系统未公开的传感器接口，只读、不联网。关闭 GlassDock 即可移除悬浮栏。",
+                        en: "Settings stay on this Mac. GlassDock never reads other apps' sign-in data. Never modifies the system Dock. Only the CPU Temperature widget reads an undocumented sensor interface — read-only, never sent anywhere. Quit GlassDock to remove the floating Dock."
+                    ))
                         .font(.system(size: 11)).foregroundStyle(Color.muted).lineSpacing(5)
                 }
             }.padding(23).frame(maxWidth: .infinity, alignment: .leading).contentCard(radius: 20)

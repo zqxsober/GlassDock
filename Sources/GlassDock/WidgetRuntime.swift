@@ -110,6 +110,7 @@ public struct WidgetMusicState: Equatable, Sendable {
 public final class WidgetRuntime: ObservableObject {
     @Published public private(set) var now = Date()
     @Published public private(set) var metrics = WidgetSystemMetrics.empty
+    @Published public private(set) var cpuTemperature: CPUTemperatureState = .sampling
     @Published public private(set) var events: [WidgetCalendarEvent] = []
     @Published public private(set) var reminders: [WidgetReminder] = []
     @Published public private(set) var calendarAccess: WidgetAccessState
@@ -124,6 +125,11 @@ public final class WidgetRuntime: ObservableObject {
 
     private let eventStore = EKEventStore()
     private let metricsProvider = WidgetSystemMetricsProvider()
+    /// 独立于系统活动指标：2 秒一次、后台队列读取，仅在有温度组件时运行。
+    private lazy var temperatureSampler = CPUTemperatureSampler { [weak self] state in
+        guard let self, self.cpuTemperature != state else { return }
+        self.cpuTemperature = state
+    }
     private let codexUsageClient = CodexUsageClient()
     private var clockTimer: Timer?
     private var activeConfigurations: [UUID: DockWidgetConfiguration] = [:]
@@ -220,6 +226,11 @@ public final class WidgetRuntime: ObservableObject {
             lastCodexUsageRefreshAt = nil
         }
 
+        if configurations.contains(where: \.kind.isCPUTemperature) {
+            temperatureSampler.start()
+        } else if temperatureSampler.isRunning {
+            temperatureSampler.stop()
+        }
         hasMetricWidgets = configurations.contains { Self.usesSystemMetrics($0.kind) }
         hasBatteryWidgets = configurations.contains { Self.usesBatteryMetrics($0.kind) }
         if hasMetricWidgets { sampleMetrics(force: !hadMetricWidgets) }

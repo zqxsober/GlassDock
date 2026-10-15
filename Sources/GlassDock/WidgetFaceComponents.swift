@@ -70,15 +70,17 @@ struct SmallRing: View {
     let value: Double?
     let color: Color
     let size: CGFloat
+    /// 缩放前的线宽；默认 3，与既有调用一致。
+    var lineWidth: CGFloat = 3
 
     private var metrics: WidgetMetrics { WidgetMetrics(scale: widgetScale) }
 
     var body: some View {
         ZStack {
-            Circle().stroke(.quaternary, lineWidth: metrics.dimension(3))
+            Circle().stroke(.quaternary, lineWidth: metrics.dimension(lineWidth))
             if let value {
                 Circle().trim(from: 0, to: min(1, max(0, value)))
-                    .stroke(color, style: StrokeStyle(lineWidth: metrics.dimension(3), lineCap: .round))
+                    .stroke(color, style: StrokeStyle(lineWidth: metrics.dimension(lineWidth), lineCap: .round))
                     .rotationEffect(.degrees(-90))
             } else {
                 Circle().stroke(.tertiary, style: StrokeStyle(lineWidth: metrics.dimension(2), dash: [metrics.dimension(2), metrics.dimension(3)]))

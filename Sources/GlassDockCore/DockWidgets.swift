@@ -51,7 +51,7 @@ public enum DockWidgetCategory: String, Codable, CaseIterable, Identifiable, Sen
     }
 }
 
-/// 43 种已知组件布局；原始值用于兼容历史设置，停用项不进入选择器。
+/// 45 种已知组件布局；原始值用于兼容历史设置，停用项不进入选择器。
 public enum DockWidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case clock, worldClock, stopwatch, focusTimer, timeProgress, countdown, alarm
     case hydration, remindersList, reminderNext, reminderCount
@@ -62,6 +62,7 @@ public enum DockWidgetKind: String, Codable, CaseIterable, Identifiable, Sendabl
     case weatherCurrent, weatherConditions, weatherHourly
     case stripeChart, stripeNumber, paddleChart, paddleNumber, shopifyChart, shopifyNumber
     case stock, watchlist
+    case cpuTemperatureNumber, cpuTemperatureRing
 
     public static var availableKinds: [Self] { allCases.filter(\.isAvailable) }
 
@@ -75,7 +76,8 @@ public enum DockWidgetKind: String, Codable, CaseIterable, Identifiable, Sendabl
         case .stickyNote: .notes
         case .musicFull, .musicMini: .media
         case .batteryStatus, .batteryRing, .batteryIcon, .systemNumbers, .systemRings, .systemBars,
-             .networkNumbers, .networkChart, .shortcut, .airDrop: .system
+             .networkNumbers, .networkChart, .shortcut, .airDrop,
+             .cpuTemperatureNumber, .cpuTemperatureRing: .system
         case .aiNumbers, .aiRings, .aiBars, .aiCapsules: .ai
         case .weatherCurrent, .weatherConditions, .weatherHourly: .weather
         case .stripeChart, .stripeNumber, .paddleChart, .paddleNumber, .shopifyChart, .shopifyNumber: .business
@@ -127,6 +129,8 @@ public enum DockWidgetKind: String, Codable, CaseIterable, Identifiable, Sendabl
         case .shopifyNumber: "Shopify · 数字"
         case .stock: "股票"
         case .watchlist: "股票自选列表"
+        case .cpuTemperatureNumber: "CPU 温度 · 数字"
+        case .cpuTemperatureRing: "CPU 温度 · 环形"
         }
     }
     public var requiresExternalData: Bool {
@@ -135,6 +139,7 @@ public enum DockWidgetKind: String, Codable, CaseIterable, Identifiable, Sendabl
     }
     public var requiresCalendarAccess: Bool { [.calendarNext, .calendarDateNext, .calendarAgenda].contains(self) }
     public var requiresRemindersAccess: Bool { [.remindersList, .reminderNext, .reminderCount].contains(self) }
+    public var isCPUTemperature: Bool { self == .cpuTemperatureNumber || self == .cpuTemperatureRing }
     public var isTimer: Bool { [.stopwatch, .focusTimer, .countdown, .hydration].contains(self) }
     public var preferredWidth: Double {
         switch self {
@@ -161,6 +166,8 @@ public struct DockWidgetConfiguration: Codable, Equatable, Identifiable, Sendabl
     public var shortcutName: String
     public var hydrationCount: Int
     public var hydrationDate: Date
+    /// 仅 CPU 温度组件使用；可选以兼容不含该字段的旧设置，nil 视为摄氏。
+    public var temperatureUnit: TemperatureUnit?
 
     public init(kind: DockWidgetKind, id: UUID = UUID()) {
         self.id = id
@@ -174,6 +181,8 @@ public struct DockWidgetConfiguration: Codable, Equatable, Identifiable, Sendabl
         hydrationCount = 0
         hydrationDate = Date()
     }
+
+    public var resolvedTemperatureUnit: TemperatureUnit { temperatureUnit ?? .celsius }
 
     public var displayTitle: String { title.isEmpty ? kind.title : title }
     public var keyboardID: String { "widget-\(id.uuidString)" }

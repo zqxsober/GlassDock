@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import AppKit
 import Foundation
 import GlassDockCore
 import SwiftUI
@@ -20,6 +21,7 @@ import SwiftUI
 struct WidgetFace: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.widgetScale) private var widgetScale
+    @Environment(\.colorSchemeContrast) private var contrast
     let configuration: DockWidgetConfiguration
     @ObservedObject var runtime: WidgetRuntime
     let batteryPercent: Int?
@@ -91,6 +93,8 @@ struct WidgetFace: View {
             CodexUsageFace(runtime: runtime, accent: accent, title: configuration.displayTitle, style: .capsules)
         case .shortcut: shortcutFace
         case .airDrop: airDropFace
+        case .cpuTemperatureNumber: temperatureFace(style: .number)
+        case .cpuTemperatureRing: temperatureFace(style: .ring)
         case .weatherCurrent, .weatherConditions, .weatherHourly,
              .stripeChart, .stripeNumber, .paddleChart, .paddleNumber, .shopifyChart, .shopifyNumber,
              .stock, .watchlist:
@@ -360,6 +364,72 @@ struct WidgetFace: View {
                         metricBar("CPU", value: cpu)
                         metricBar("内存", value: memory)
                     }.padding(.horizontal, d(10))
+                }
+            }
+        }
+    }
+
+    private enum TemperatureStyle { case number, ring }
+
+    private func temperatureColor(_ level: TemperatureLevel) -> Color {
+        switch level {
+        case .normal: accent
+        case .warm: Color(nsColor: .systemOrange)
+        case .hot: Color(nsColor: .systemRed)
+        }
+    }
+
+    @ViewBuilder
+    private func temperatureFace(style: TemperatureStyle) -> some View {
+        let unit = configuration.resolvedTemperatureUnit
+        switch runtime.cpuTemperature {
+        case .sampling:
+            waitingFace(title: "CPU 温度", symbol: "thermometer.medium")
+        case .unavailable:
+            switch style {
+            case .number:
+                HStack(spacing: d(6)) {
+                    Image(systemName: "thermometer.slash").font(.system(size: f(14))).foregroundStyle(.secondary)
+                    Text("不可用").font(.system(size: f(9))).foregroundStyle(.secondary)
+                }
+            case .ring:
+                HStack(spacing: d(8)) {
+                    ZStack {
+                        SmallRing(value: nil, color: accent, size: d(36))
+                        Image(systemName: "thermometer.slash").font(.system(size: f(11))).foregroundStyle(.secondary)
+                    }
+                    Text("不可用").font(.system(size: f(9))).foregroundStyle(.secondary)
+                }
+            }
+        case .reading(let aggregate):
+            let level = aggregate.level
+            let color = temperatureColor(level)
+            let highContrast = contrast == .increased
+            let valueColor: Color = highContrast && level != .normal ? color : .primary
+            switch style {
+            case .number:
+                HStack(spacing: d(8)) {
+                    Image(systemName: level.symbol).font(.system(size: f(18), weight: .regular)).foregroundStyle(color)
+                    VStack(alignment: .leading, spacing: d(3)) {
+                        Text(unit.formatted(celsius: aggregate.average))
+                            .font(.system(size: f(19), weight: level == .hot ? .semibold : .regular, design: .rounded))
+                            .monospacedDigit().foregroundStyle(valueColor)
+                        Text("CPU · 最高 \(unit.rounded(celsius: aggregate.maximum))°")
+                            .font(.system(size: f(9))).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+            case .ring:
+                HStack(spacing: d(8)) {
+                    ZStack {
+                        SmallRing(value: aggregate.ringProgress, color: color, size: d(36), lineWidth: highContrast ? 4 : 3)
+                        Image(systemName: level.symbol).font(.system(size: f(11))).foregroundStyle(color)
+                    }
+                    VStack(alignment: .leading, spacing: d(3)) {
+                        Text(unit.formatted(celsius: aggregate.average))
+                            .font(.system(size: f(17), weight: level == .hot ? .semibold : .regular, design: .rounded))
+                            .monospacedDigit().foregroundStyle(valueColor)
+                        Text("CPU 温度 · \(level.title)").font(.system(size: f(9))).foregroundStyle(.secondary).lineLimit(1)
+                    }
                 }
             }
         }
