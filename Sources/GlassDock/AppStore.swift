@@ -20,6 +20,18 @@ import IOKit.ps
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum DashboardSheet: Identifiable, Equatable {
+    case onboarding
+    case update(GitHubRelease)
+
+    var id: String {
+        switch self {
+        case .onboarding: "onboarding"
+        case .update(let release): "update-\(release.tagName)"
+        }
+    }
+}
+
 enum DashboardPage: String, CaseIterable, Identifiable {
     case overview = "总览"
     case dock = "我的 Dock"
@@ -74,9 +86,13 @@ final class AppStore: ObservableObject {
     @Published var toast: String?
     @Published var presentedWidgetID: UUID?
     @Published var isWidgetEditorPresented = false
-    @Published var isOnboardingPresented = false
+    /// 主窗口上唯一的 sheet；引导与更新提示通过它协调，避免两个 .sheet 互相吞掉。
+    @Published private(set) var activeSheet: DashboardSheet?
+    /// 当前 sheet 占用时排队等待的 sheet（只保留一个）。
+    private(set) var queuedSheet: DashboardSheet?
     let widgets = WidgetRuntime()
     let windowTracker = DockWindowTracker()
+    let updateChecker: UpdateChecker
 
     private let defaults: UserDefaults
     private var subscriptions = Set<AnyCancellable>()
@@ -88,8 +104,9 @@ final class AppStore: ObservableObject {
     private var shouldAutoPresentOnboarding = false
     private static let preferencesKey = "glassdock.preferences.v1"
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, updateChecker: UpdateChecker? = nil) {
         self.defaults = defaults
+        self.updateChecker = updateChecker ?? UpdateChecker(defaults: defaults)
         let onboardingDecision = OnboardingPolicy.launchDecision(
             completedVersion: defaults.object(forKey: OnboardingPolicy.completedVersionKey) as? Int,
             hasExistingPreferences: defaults.data(forKey: Self.preferencesKey) != nil
@@ -115,6 +132,10 @@ final class AppStore: ObservableObject {
         shouldAutoPresentOnboarding = onboardingDecision == .present
         focus.reset(minutes: preferences.focusMinutes)
         widgets.sync(configurations: preferences.customWidgets)
+        updateChecker.objectWillChange.receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &subscriptions)
+        updateChecker.$presentedRelease.dropFirst()
+            .sink { [weak self] release in self?.handleUpdateRequest(release) }.store(in: &subscriptions)
         windowTracker.objectWillChange.receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &subscriptions)
         windowTracker.$errorMessage.compactMap { $0 }.receive(on: RunLoop.main)
@@ -426,24 +447,92 @@ final class AppStore: ObservableObject {
         }
     }
 
+    // MARK: - 主窗口 sheet 协调
+
+    var isOnboardingPresented: Bool { activeSheet == .onboarding }
+
+    /// 规则：引导优先。引导打开时到来的更新提示排队，引导结束后再弹；
+    /// 更新提示打开时请求引导，引导替换上来，更新提示排回队列；新的更新提示替换旧的。
+    func presentSheet(_ sheet: DashboardSheet) {
+        guard let current = activeSheet else {
+            activeSheet = sheet
+            return
+        }
+        guard current != sheet else { return }
+        switch (current, sheet) {
+        case (.onboarding, .update):
+            queuedSheet = sheet
+        case (.update, .onboarding):
+            queuedSheet = current
+            activeSheet = .onboarding
+        case (.update, .update):
+            activeSheet = sheet
+        case (.onboarding, .onboarding):
+            break
+        }
+    }
+
+    /// 通过按钮关闭当前 sheet，并显示排队中的 sheet。
+    private func finishSheet(_ sheet: DashboardSheet) {
+        if queuedSheet == sheet { queuedSheet = nil }
+        guard activeSheet == sheet else { return }
+        activeSheet = nil
+        if let next = queuedSheet {
+            queuedSheet = nil
+            activeSheet = next
+        } else if sheet == .onboarding {
+            // 引导期间若有未处理的新版本（例如窗口刚打开时检查返回），此时补弹。
+            updateChecker.mainWindowDidAppear()
+        }
+    }
+
+    /// 系统关闭 sheet（例如主窗口被关掉）：引导记为未完成；未处理的更新提示排回队列，下次打开主窗口再弹。
+    func sheetDismissedWithoutAction() {
+        guard let current = activeSheet else { return }
+        activeSheet = nil
+        if case .update = current, queuedSheet == nil { queuedSheet = current }
+    }
+
+    /// 主窗口出现时：先弹首次启动引导，否则弹排队中的 sheet 或未处理的新版本提示。
+    func mainWindowDidAppear() {
+        presentOnboardingIfNeeded()
+        guard activeSheet == nil else { return }
+        if let next = queuedSheet {
+            queuedSheet = nil
+            activeSheet = next
+        } else {
+            updateChecker.mainWindowDidAppear()
+        }
+    }
+
+    private func handleUpdateRequest(_ release: GitHubRelease?) {
+        if let release {
+            presentSheet(.update(release))
+            return
+        }
+        // 忽略 / 稍后 / 前往下载之后，UpdateChecker 清空请求：关掉更新提示。
+        if case .update(let shown) = activeSheet { finishSheet(.update(shown)) }
+        if case .update = queuedSheet { queuedSheet = nil }
+    }
+
     // MARK: - 首次启动引导
 
     /// 主窗口出现时调用；只在全新安装的首次启动自动弹出一次。
     func presentOnboardingIfNeeded() {
         guard shouldAutoPresentOnboarding else { return }
         shouldAutoPresentOnboarding = false
-        isOnboardingPresented = true
+        presentSheet(.onboarding)
     }
 
     /// 设置与菜单栏中的“重新打开引导”入口，不改变已记录的完成状态。
     func showOnboarding() {
         AppCoordinator.shared.showMainWindow()
-        isOnboardingPresented = true
+        presentSheet(.onboarding)
     }
 
-    /// “完成”与“稍后再说”都记为已完成；直接关闭主窗口不记录，下次启动会再弹。
+    /// “完成”与“稍后再说”都记为已完成；之后显示引导期间到来的更新提示。
     func finishOnboarding() {
         defaults.set(OnboardingPolicy.currentVersion, forKey: OnboardingPolicy.completedVersionKey)
-        isOnboardingPresented = false
+        finishSheet(.onboarding)
     }
 }

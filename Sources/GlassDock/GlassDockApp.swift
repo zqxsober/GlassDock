@@ -38,6 +38,13 @@ struct GlassDockApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .appInfo) {
+                Button(L10n.text(zh: "检查更新…", en: "Check for Updates…")) {
+                    AppCoordinator.shared.showMainWindow()
+                    store.page = .preferences
+                    store.updateChecker.checkNow()
+                }
+            }
             CommandGroup(after: .windowArrangement) {
                 Button(store.isDockVisible ? "隐藏悬浮 Dock" : "显示悬浮 Dock") { store.isDockVisible.toggle() }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
@@ -46,7 +53,14 @@ struct GlassDockApp: App {
                     .keyboardShortcut("d", modifiers: [.command, .option, .shift])
             }
         }
-        MenuBarExtra("GlassDock", systemImage: "square.stack.3d.up.fill") {
+        MenuBarExtra {
+            if let release = store.updateChecker.pendingRelease {
+                Button(L10n.text(zh: "有新版本 \(release.displayVersion)…", en: "Version \(release.displayVersion) Available…")) {
+                    AppCoordinator.shared.showMainWindow()
+                    store.updateChecker.showPendingRelease()
+                }
+                Divider()
+            }
             Button("打开 GlassDock") { AppCoordinator.shared.showMainWindow() }
             Button(L10n.text(zh: "欢迎引导…", en: "Welcome Guide…")) { store.showOnboarding() }
             Divider()
@@ -56,6 +70,8 @@ struct GlassDockApp: App {
             Button("重置专注计时") { store.resetFocus() }
             Divider()
             Button("退出 GlassDock") { NSApp.terminate(nil) }.keyboardShortcut("q")
+        } label: {
+            Image(nsImage: MenuBarIcon.image(badged: store.updateChecker.pendingRelease != nil))
         }.menuBarExtraStyle(.menu)
     }
 }
@@ -67,7 +83,7 @@ private struct MainWindowContent: View {
         DashboardView()
             .onAppear {
                 AppCoordinator.shared.start(store: store) { openWindow(id: "main") }
-                store.presentOnboardingIfNeeded()
+                store.mainWindowDidAppear()
             }
     }
 }

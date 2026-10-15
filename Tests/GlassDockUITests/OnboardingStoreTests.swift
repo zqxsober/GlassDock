@@ -46,7 +46,7 @@ struct OnboardingStoreTests {
         defer { defaults.removePersistentDomain(forName: name) }
         let store = AppStore(defaults: defaults)
         store.presentOnboardingIfNeeded()
-        store.isOnboardingPresented = false // 主窗口关闭时 sheet 随之消失
+        store.sheetDismissedWithoutAction() // 主窗口关闭时 sheet 随之消失
         store.preferences.showClock = false // 新用户此时已经写入了偏好
         let relaunched = AppStore(defaults: defaults)
         relaunched.presentOnboardingIfNeeded()
